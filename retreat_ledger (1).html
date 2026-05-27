@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수련회 회비 정산 장부</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Black+Han+Sans&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f1ec; --bg-2: #e9e5da; --card: #ffffff;
+    --ink: #2b2823; --ink-soft: #6a6358; --ink-faint: #9c9484;
+    --line: #ddd6c6; --green: #3d8b5f; --green-deep: #2e6d49;
+    --red: #c0524a; --red-deep: #a03e37; --blue: #4173a0;
+    --gold: #c69536; --shadow: rgba(60, 50, 25, 0.14);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Gowun Dodum', sans-serif; background: var(--bg);
+    color: var(--ink); line-height: 1.7; -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { max-width: 800px; margin: 0 auto; padding: 0 16px 90px; }
+  header { text-align: center; padding: 42px 14px 20px; }
+  .badge {
+    display: inline-block; font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.16em; background: var(--green); color: #fff;
+    font-size: 0.95rem; padding: 4px 16px; border-radius: 6px; margin-bottom: 12px;
+  }
+  h1 { font-family: 'Black Han Sans', sans-serif; font-size: 2.3rem; }
+  .tagline { color: var(--ink-soft); font-size: 0.96rem; margin-top: 4px; }
+
+  /* 요약 카드 */
+  .summary {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin: 24px 0 20px;
+  }
+  .sum-card {
+    background: var(--card); border: 2px solid var(--line);
+    border-radius: 14px; padding: 16px 12px; text-align: center;
+    box-shadow: 0 3px 10px var(--shadow);
+  }
+  .sum-card .label { font-size: 0.84rem; color: var(--ink-soft); margin-bottom: 4px; }
+  .sum-card .amount {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; line-height: 1.1;
+  }
+  .sum-card.income .amount { color: var(--green); }
+  .sum-card.expense .amount { color: var(--red); }
+  .sum-card.balance { border-color: var(--blue); }
+  .sum-card.balance .amount { color: var(--blue); }
+  .sum-card .won { font-size: 0.9rem; }
+
+  /* 입력 */
+  .input-card {
+    background: var(--card); border: 2px solid var(--line);
+    border-radius: 14px; padding: 18px; margin-bottom: 18px;
+    box-shadow: 0 3px 10px var(--shadow);
+  }
+  .type-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+  .type-btn {
+    flex: 1; font-family: 'Black Han Sans', sans-serif; font-size: 1rem;
+    padding: 10px; border: 2px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--ink-soft); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .type-btn.income.on { background: var(--green); color: #fff; border-color: var(--green); }
+  .type-btn.expense.on { background: var(--red); color: #fff; border-color: var(--red); }
+
+  .field-grid {
+    display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; margin-bottom: 10px;
+  }
+  .fld label {
+    display: block; font-size: 0.8rem; color: var(--ink-soft);
+    margin-bottom: 3px; font-family: 'Gowun Dodum', sans-serif;
+  }
+  .fld input, .fld select {
+    width: 100%; font-family: 'Gowun Dodum', sans-serif; font-size: 0.96rem;
+    border: 2px solid var(--line); border-radius: 8px;
+    padding: 9px 11px; background: var(--bg); color: var(--ink);
+  }
+  .fld input:focus, .fld select:focus { outline: none; border-color: var(--green); }
+  .add-btn {
+    width: 100%; font-family: 'Black Han Sans', sans-serif; font-size: 1rem;
+    padding: 11px; border: none; border-radius: 10px; cursor: pointer;
+    background: var(--green); color: #fff; transition: background 0.15s;
+  }
+  .add-btn:hover { background: var(--green-deep); }
+  .add-btn.expense-mode { background: var(--red); }
+  .add-btn.expense-mode:hover { background: var(--red-deep); }
+
+  /* 항목별 집계 */
+  .cat-section { margin-bottom: 18px; }
+  .section-title {
+    font-family: 'Black Han Sans', sans-serif; font-size: 1.05rem;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 7px;
+  }
+  .section-title::before { content: ""; width: 14px; height: 2px; background: var(--gold); }
+  .cat-bars { display: flex; flex-direction: column; gap: 7px; }
+  .cat-bar {
+    background: var(--card); border: 1.5px solid var(--line);
+    border-radius: 9px; padding: 9px 13px;
+  }
+  .cat-bar-top {
+    display: flex; justify-content: space-between; font-size: 0.9rem;
+    margin-bottom: 5px;
+  }
+  .cat-bar-name { font-weight: 700; }
+  .cat-bar-amt { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; }
+  .cat-track { background: var(--bg-2); border-radius: 10px; height: 7px; overflow: hidden; }
+  .cat-fill { height: 100%; border-radius: 10px; }
+
+  /* 거래 목록 */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .btn {
+    font-family: 'Black Han Sans', sans-serif; font-size: 0.85rem;
+    padding: 8px 14px; border: 2px solid var(--line); border-radius: 9px;
+    background: var(--card); color: var(--ink); cursor: pointer;
+    transition: all 0.14s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn.green { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn.danger { color: var(--red); border-color: var(--red); }
+  .btn.spacer-left { margin-left: auto; }
+
+  .txn {
+    background: var(--card); border: 1.5px solid var(--line);
+    border-radius: 10px; padding: 11px 14px; margin-bottom: 7px;
+    display: flex; align-items: center; gap: 11px;
+  }
+  .txn-mark {
+    width: 8px; height: 38px; border-radius: 4px; flex-shrink: 0;
+  }
+  .txn-mark.income { background: var(--green); }
+  .txn-mark.expense { background: var(--red); }
+  .txn-body { flex: 1; min-width: 0; }
+  .txn-title { font-weight: 700; font-size: 0.97rem; }
+  .txn-meta { font-size: 0.78rem; color: var(--ink-soft); }
+  .txn-amount {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; white-space: nowrap;
+  }
+  .txn-amount.income { color: var(--green); }
+  .txn-amount.expense { color: var(--red); }
+  .txn-del {
+    background: none; border: none; color: var(--ink-faint);
+    cursor: pointer; font-size: 0.9rem; flex-shrink: 0;
+  }
+  .txn-del:hover { color: var(--red); }
+
+  .empty { text-align: center; padding: 44px 20px; color: var(--ink-faint); }
+  .empty .big { font-size: 2.4rem; margin-bottom: 8px; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(90px);
+    background: var(--ink); color: #fff; font-family: 'Black Han Sans', sans-serif;
+    font-size: 0.93rem; padding: 11px 24px; border-radius: 22px; z-index: 200;
+    transition: transform 0.32s cubic-bezier(0.2,0,0.2,1);
+    box-shadow: 0 8px 20px var(--shadow);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  footer {
+    text-align: center; margin-top: 36px; padding-top: 20px;
+    border-top: 2px dashed var(--line); color: var(--ink-faint);
+    font-family: 'Black Han Sans', sans-serif; font-size: 0.85rem;
+  }
+  @media (max-width: 600px) {
+    h1 { font-size: 1.95rem; }
+    .summary { grid-template-columns: 1fr; }
+    .field-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="badge">RETREAT LEDGER</div>
+    <h1>수련회 회비 정산 장부</h1>
+    <p class="tagline">수입과 지출을 기록하고, 항목별로 한눈에 정산해요</p>
+  </header>
+
+  <!-- 요약 -->
+  <div class="summary">
+    <div class="sum-card income">
+      <div class="label">총 수입</div>
+      <div class="amount"><span id="sum-income">0</span><span class="won">원</span></div>
+    </div>
+    <div class="sum-card expense">
+      <div class="label">총 지출</div>
+      <div class="amount"><span id="sum-expense">0</span><span class="won">원</span></div>
+    </div>
+    <div class="sum-card balance">
+      <div class="label">남은 잔액</div>
+      <div class="amount"><span id="sum-balance">0</span><span class="won">원</span></div>
+    </div>
+  </div>
+
+  <!-- 입력 -->
+  <div class="input-card">
+    <div class="type-toggle">
+      <button class="type-btn income on" id="btn-income" onclick="setType('income')">+ 수입</button>
+      <button class="type-btn expense" id="btn-expense" onclick="setType('expense')">− 지출</button>
+    </div>
+    <div class="field-grid">
+      <div class="fld">
+        <label>내용</label>
+        <input type="text" id="f-title" placeholder="예: 회비 납부 / 식자재 구입">
+      </div>
+      <div class="fld">
+        <label>금액 (원)</label>
+        <input type="number" id="f-amount" placeholder="0" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field-grid">
+      <div class="fld">
+        <label>항목</label>
+        <select id="f-category"></select>
+      </div>
+      <div class="fld">
+        <label>날짜</label>
+        <input type="date" id="f-date">
+      </div>
+    </div>
+    <button class="add-btn" id="add-btn" onclick="addTxn()">수입 기록 추가</button>
+  </div>
+
+  <!-- 항목별 집계 -->
+  <div class="cat-section" id="cat-section">
+    <div class="section-title">항목별 집계</div>
+    <div class="cat-bars" id="cat-bars"></div>
+  </div>
+
+  <!-- 거래 목록 -->
+  <div class="section-title">전체 내역</div>
+  <div class="toolbar">
+    <button class="btn on" data-filter="all" onclick="setFilter('all')">전체</button>
+    <button class="btn" data-filter="income" onclick="setFilter('income')">수입만</button>
+    <button class="btn" data-filter="expense" onclick="setFilter('expense')">지출만</button>
+    <button class="btn green spacer-left" onclick="exportCSV()">CSV 내보내기</button>
+    <button class="btn danger" onclick="resetAll()">초기화</button>
+  </div>
+  <div id="txn-list"></div>
+
+  <footer>수련회 회비 정산 장부 — 청소년부 수련회 도구</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================
+// 데이터
+// ============================================
+const STORE = 'retreat_ledger';
+const CATEGORIES = {
+  income: ['회비', '교회 지원금', '후원금', '기타 수입'],
+  expense: ['식비', '숙소비', '교통비', '강사비', '교재·물품', '간식', '상품·시상', '기타 지출']
+};
+const CAT_COLORS = ['#3d8b5f','#c0524a','#4173a0','#c69536','#7b62a8','#5a9aa0','#b07840','#8a8a5a'];
+
+let txns = load();
+let curType = 'income';
+let curFilter = 'all';
+
+function load() {
+  try {
+    const v = JSON.parse(localStorage.getItem(STORE));
+    if (Array.isArray(v)) return v;
+  } catch (e) {}
+  return [];
+}
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(txns)); } catch (e) {}
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function uid() { return 't' + Date.now() + Math.floor(Math.random() * 999); }
+function won(n) { return n.toLocaleString('ko-KR'); }
+
+// ============================================
+// 입력 타입
+// ============================================
+function setType(type) {
+  curType = type;
+  document.getElementById('btn-income').classList.toggle('on', type === 'income');
+  document.getElementById('btn-expense').classList.toggle('on', type === 'expense');
+  const addBtn = document.getElementById('add-btn');
+  addBtn.textContent = type === 'income' ? '수입 기록 추가' : '지출 기록 추가';
+  addBtn.classList.toggle('expense-mode', type === 'expense');
+  fillCategories();
+}
+function fillCategories() {
+  const sel = document.getElementById('f-category');
+  sel.innerHTML = CATEGORIES[curType].map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+// ============================================
+// 거래 추가
+// ============================================
+function addTxn() {
+  const title = document.getElementById('f-title').value.trim();
+  const amount = parseInt(document.getElementById('f-amount').value, 10);
+  const category = document.getElementById('f-category').value;
+  let date = document.getElementById('f-date').value;
+  if (!title) { toast('내용을 입력해주세요'); return; }
+  if (!amount || amount <= 0) { toast('금액을 올바르게 입력해주세요'); return; }
+  if (!date) {
+    const now = new Date();
+    date = now.getFullYear() + '-' +
+      String(now.getMonth() + 1).padStart(2, '0') + '-' +
+      String(now.getDate()).padStart(2, '0');
+  }
+  txns.push({ id: uid(), type: curType, title, amount, category, date });
+  save();
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-amount').value = '';
+  document.getElementById('f-date').value = '';
+  renderAll();
+  toast(curType === 'income' ? '수입을 기록했어요' : '지출을 기록했어요');
+}
+
+function removeTxn(id) {
+  if (!confirm('이 내역을 삭제할까요?')) return;
+  txns = txns.filter(t => t.id !== id);
+  save();
+  renderAll();
+  toast('내역을 삭제했어요');
+}
+
+// ============================================
+// 렌더링
+// ============================================
+function setFilter(f) {
+  curFilter = f;
+  document.querySelectorAll('.toolbar .btn[data-filter]').forEach(b => {
+    b.classList.toggle('on', b.dataset.filter === f);
+  });
+  renderTxnList();
+}
+
+function renderSummary() {
+  const income = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  document.getElementById('sum-income').textContent = won(income);
+  document.getElementById('sum-expense').textContent = won(expense);
+  document.getElementById('sum-balance').textContent = won(income - expense);
+}
+
+function renderCategories() {
+  const section = document.getElementById('cat-section');
+  const expenseTxns = txns.filter(t => t.type === 'expense');
+  if (expenseTxns.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  const byCat = {};
+  expenseTxns.forEach(t => {
+    byCat[t.category] = (byCat[t.category] || 0) + t.amount;
+  });
+  const sorted = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const max = sorted[0][1];
+  const bars = document.getElementById('cat-bars');
+  bars.innerHTML = sorted.map(([cat, amt], i) => {
+    const pct = max > 0 ? Math.round(amt / max * 100) : 0;
+    const color = CAT_COLORS[i % CAT_COLORS.length];
+    return `
+      <div class="cat-bar">
+        <div class="cat-bar-top">
+          <span class="cat-bar-name">${esc(cat)}</span>
+          <span class="cat-bar-amt" style="color:${color}">${won(amt)}원</span>
+        </div>
+        <div class="cat-track">
+          <div class="cat-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderTxnList() {
+  const wrap = document.getElementById('txn-list');
+  let list = txns.slice();
+  if (curFilter !== 'all') list = list.filter(t => t.type === curFilter);
+  list.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+  if (list.length === 0) {
+    wrap.innerHTML = '<div class="empty"><div class="big">📒</div>' +
+      (txns.length === 0 ? '아직 기록된 내역이 없어요.<br>위에서 수입·지출을 추가해보세요.'
+        : '해당하는 내역이 없어요.') + '</div>';
+    return;
+  }
+  wrap.innerHTML = list.map(t => `
+    <div class="txn">
+      <div class="txn-mark ${t.type}"></div>
+      <div class="txn-body">
+        <div class="txn-title">${esc(t.title)}</div>
+        <div class="txn-meta">${esc(t.category)} · ${esc(t.date)}</div>
+      </div>
+      <div class="txn-amount ${t.type}">${t.type === 'income' ? '+' : '−'}${won(t.amount)}</div>
+      <button class="txn-del" onclick="removeTxn('${t.id}')">✕</button>
+    </div>`).join('');
+}
+
+function renderAll() {
+  renderSummary();
+  renderCategories();
+  renderTxnList();
+}
+
+// ============================================
+// CSV
+// ============================================
+function exportCSV() {
+  if (txns.length === 0) { toast('내보낼 내역이 없어요'); return; }
+  const header = ['날짜', '구분', '항목', '내용', '금액'];
+  const sorted = txns.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const rows = sorted.map(t => [
+    t.date, t.type === 'income' ? '수입' : '지출',
+    t.category, t.title, t.amount
+  ]);
+  const income = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  rows.push([]);
+  rows.push(['', '', '', '총 수입', income]);
+  rows.push(['', '', '', '총 지출', expense]);
+  rows.push(['', '', '', '잔액', income - expense]);
+  const csv = [header, ...rows]
+    .map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(','))
+    .join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '수련회_회비정산.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('정산 내역을 내보냈어요');
+}
+
+function resetAll() {
+  if (!confirm('정말 전체 내역을 초기화할까요? 되돌릴 수 없어요.')) return;
+  txns = [];
+  save();
+  renderAll();
+  toast('장부를 초기화했어요');
+}
+
+// ============================================
+// 초기화
+// ============================================
+fillCategories();
+renderAll();
+</script>
+</body>
+</html>
